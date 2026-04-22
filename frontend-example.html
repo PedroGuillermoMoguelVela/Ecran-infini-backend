@@ -1,0 +1,279 @@
+<!-- Ejemplo de integración en tu frontend HTML -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Écran Infini - Búsqueda de Películas</title>
+    <style>
+        /* Tus estilos existentes */
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .movie-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .rating { color: #ffd700; }
+        .auth-section { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Sección de autenticación -->
+    <div id="authSection" class="auth-section">
+        <h3>Autenticación</h3>
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Contraseña">
+            <button onclick="login()">Iniciar Sesión</button>
+            <button onclick="showRegister()">Registrarse</button>
+        </div>
+        <div id="registerForm" class="hidden">
+            <input type="text" id="registerName" placeholder="Nombre">
+            <input type="email" id="registerEmail" placeholder="Email">
+            <input type="password" id="registerPassword" placeholder="Contraseña">
+            <button onclick="register()">Registrarse</button>
+            <button onclick="showLogin()">Volver al Login</button>
+        </div>
+        <div id="userInfo" class="hidden">
+            <span id="userName"></span>
+            <button onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="Buscar películas...">
+        <button onclick="searchMovies()">Buscar</button>
+        <button onclick="loadAllMovies()">Mostrar Todas</button>
+    </div>
+
+    <!-- Resultados -->
+    <div id="results"></div>
+
+    <!-- Script de integración -->
+    <script src="frontend-api.js"></script>
+    <script>
+        // Variables globales
+        let currentUser = null;
+        let allMovies = [];
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+            loadAllMovies();
+        });
+
+        // ============ AUTENTICACIÓN ============
+
+        function checkAuthStatus() {
+            if (movieAPI.token) {
+                // Verificar si el token es válido
+                fetch('http://localhost:3000/api/favorites', {
+                    headers: { 'Authorization': `Bearer ${movieAPI.token}` }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showUserInfo();
+                    } else {
+                        movieAPI.logout();
+                        showLoginForm();
+                    }
+                })
+                .catch(() => {
+                    movieAPI.logout();
+                    showLoginForm();
+                });
+            } else {
+                showLoginForm();
+            }
+        }
+
+        function showLoginForm() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        function showUserInfo() {
+            document.getElementById('userName').textContent = 'Usuario autenticado';
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('userInfo').classList.remove('hidden');
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const result = await movieAPI.login(email, password);
+                if (result.token) {
+                    showUserInfo();
+                    loadAllMovies(); // Recargar películas con funcionalidades de usuario
+                } else {
+                    alert('Error en login: ' + JSON.stringify(result));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const result = await movieAPI.register(email, password, name);
+                if (result.message === 'Usuario registrado') {
+                    alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
+                    showLogin();
+                } else {
+                    alert('Error en registro: ' + JSON.stringify(result));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function logout() {
+            movieAPI.logout();
+            showLoginForm();
+            loadAllMovies(); // Recargar sin funcionalidades de usuario
+        }
+
+        // ============ PELÍCULAS ============
+
+        async function loadAllMovies() {
+            try {
+                const movies = await movieAPI.getAllMovies();
+                allMovies = movies;
+                displayMovies(movies);
+            } catch (error) {
+                console.error('Error cargando películas:', error);
+                document.getElementById('results').innerHTML = '<p>Error cargando películas</p>';
+            }
+        }
+
+        async function searchMovies() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                loadAllMovies();
+                return;
+            }
+
+            try {
+                const movies = await movieAPI.searchMovies(query);
+
+                // Registrar búsqueda si usuario está autenticado
+                if (movieAPI.token) {
+                    movieAPI.recordSearch(query, movies.length);
+                }
+
+                displayMovies(movies);
+            } catch (error) {
+                console.error('Error buscando películas:', error);
+                document.getElementById('results').innerHTML = '<p>Error en búsqueda</p>';
+            }
+        }
+
+        function displayMovies(movies) {
+            const resultsDiv = document.getElementById('results');
+
+            if (movies.length === 0) {
+                resultsDiv.innerHTML = '<p>No se encontraron películas</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = movies.map(movie => `
+                <div class="movie-card">
+                    <h3>${movie.title}</h3>
+                    <p>${movie.review}</p>
+                    <div class="movie-actions">
+                        ${movieAPI.token ? `
+                            <button onclick="toggleFavorite('${movie._id}')">❤️ Favorito</button>
+                            <button onclick="showReviewForm('${movie._id}')">⭐ Reseñar</button>
+                            <button onclick="showReviews('${movie._id}')">Ver Reseñas</button>
+                        ` : ''}
+                    </div>
+                    <div id="reviews-${movie._id}" class="reviews-section hidden"></div>
+                </div>
+            `).join('');
+        }
+
+        // ============ FAVORITOS ============
+
+        async function toggleFavorite(movieId) {
+            try {
+                const isFavorite = await movieAPI.checkIfFavorite(movieId);
+                if (isFavorite.isFavorite) {
+                    await movieAPI.removeFromFavorites(movieId);
+                    alert('Eliminado de favoritos');
+                } else {
+                    await movieAPI.addToFavorites(movieId);
+                    alert('Agregado a favoritos');
+                }
+            } catch (error) {
+                alert('Error con favoritos: ' + error.message);
+            }
+        }
+
+        // ============ RESEÑAS ============
+
+        function showReviewForm(movieId) {
+            const rating = prompt('Rating (1-5):');
+            const comment = prompt('Comentario:');
+
+            if (rating && comment) {
+                addReview(movieId, parseInt(rating), comment);
+            }
+        }
+
+        async function addReview(movieId, rating, comment) {
+            try {
+                const result = await movieAPI.addReview(movieId, rating, comment);
+                alert('Reseña agregada exitosamente');
+            } catch (error) {
+                alert('Error agregando reseña: ' + error.message);
+            }
+        }
+
+        async function showReviews(movieId) {
+            const reviewsDiv = document.getElementById(`reviews-${movieId}`);
+            reviewsDiv.classList.toggle('hidden');
+
+            if (!reviewsDiv.classList.contains('hidden')) {
+                try {
+                    const reviews = await movieAPI.getMovieReviews(movieId);
+                    reviewsDiv.innerHTML = reviews.length > 0
+                        ? reviews.map(review => `
+                            <div class="review">
+                                <strong>${review.user.name}</strong> (${review.rating}⭐)
+                                <p>${review.comment}</p>
+                            </div>
+                        `).join('')
+                        : '<p>No hay reseñas aún</p>';
+                } catch (error) {
+                    reviewsDiv.innerHTML = '<p>Error cargando reseñas</p>';
+                }
+            }
+        }
+
+        // Permitir búsqueda con Enter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMovies();
+            }
+        });
+    </script>
+</body>
+</html>
