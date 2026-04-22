@@ -1,10 +1,8 @@
 const Review = require('../models/reviews');
 const Movie = require('../models/movies');
-
 const addReview = async (req, res) => {
   try {
     const { movieId, rating, comment } = req.body;
-
     const movie = await Movie.findById(movieId);
     if (!movie) {
       return res.status(404).json({ message: 'Película no encontrada' });
@@ -19,12 +17,12 @@ const addReview = async (req, res) => {
     await review.save();
     await review.populate('user', 'name email');
     await review.populate('movie', 'title');
-
     res.status(201).json(review);
   } catch (error) {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
 
 const getMovieReviews = async (req, res) => {
   try {
@@ -37,6 +35,8 @@ const getMovieReviews = async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
+
 
 const getUserReviews = async (req, res) => {
   try {
@@ -59,6 +59,7 @@ const updateReview = async (req, res) => {
       return res.status(404).json({ message: 'Reseña no encontrada' });
     }
 
+
     if (review.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'No tienes permiso para editar esta reseña' });
     }
@@ -68,29 +69,31 @@ const updateReview = async (req, res) => {
     await review.save();
     await review.populate('user', 'name email');
     await review.populate('movie', 'title');
-
     res.json(review);
   } catch (error) {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
-
 const deleteReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
 
     if (!review) {
+
       return res.status(404).json({ message: 'Reseña no encontrada' });
     }
 
     if (review.user.toString() !== req.user._id.toString()) {
+
       return res.status(403).json({ message: 'No tienes permiso para eliminar esta reseña' });
     }
 
     await review.deleteOne();
     res.json({ message: 'Reseña eliminada' });
   } catch (error) {
+
     res.status(500).json({ message: 'Error del servidor' });
+
   }
 };
 

@@ -1,6 +1,5 @@
 const Favorite = require('../models/favorites');
 const Movie = require('../models/movies');
-
 const addFavorite = async (req, res) => {
   try {
     const { movieId } = req.body;
@@ -9,12 +8,10 @@ const addFavorite = async (req, res) => {
     if (!movie) {
       return res.status(404).json({ message: 'Película no encontrada' });
     }
-
     const existingFavorite = await Favorite.findOne({ user: req.user._id, movie: movieId });
     if (existingFavorite) {
       return res.status(400).json({ message: 'Esta película ya está en tus favoritos' });
     }
-
     const favorite = new Favorite({ user: req.user._id, movie: movieId });
     await favorite.save();
     await favorite.populate('movie', 'title review');
@@ -24,6 +21,8 @@ const addFavorite = async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
+
 
 const getUserFavorites = async (req, res) => {
   try {
@@ -36,7 +35,6 @@ const getUserFavorites = async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
-
 const removeFavorite = async (req, res) => {
   try {
     const favorite = await Favorite.findOneAndDelete({
@@ -54,6 +52,7 @@ const removeFavorite = async (req, res) => {
   }
 };
 
+
 const checkFavorite = async (req, res) => {
   try {
     const favorite = await Favorite.findOne({ user: req.user._id, movie: req.params.movieId });
@@ -62,5 +61,4 @@ const checkFavorite = async (req, res) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
-
 module.exports = { addFavorite, getUserFavorites, removeFavorite, checkFavorite };

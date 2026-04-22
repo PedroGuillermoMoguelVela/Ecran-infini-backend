@@ -11,7 +11,7 @@ const movieSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Índice para búsquedas por título
+//búsquedas por título
 movieSchema.index({ title: 'text' });
 
 const Movie = mongoose.model('Movie', movieSchema);

@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/users');
 
 const router = express.Router();
-
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -14,7 +13,6 @@ router.post('/register', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
