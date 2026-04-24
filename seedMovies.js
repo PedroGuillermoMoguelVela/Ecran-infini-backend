@@ -76,7 +76,7 @@ async function seedMovies() {
 
     // Insertar películas
     const movies = await Movie.insertMany(moviesData);
-    console.log(`✅ Insertadas ${movies.length} películas`);
+    console.log(` Insertadas ${movies.length} películas`);
 
     console.log('Películas insertadas:');
     movies.forEach(movie => console.log(`- ${movie.title}`));
