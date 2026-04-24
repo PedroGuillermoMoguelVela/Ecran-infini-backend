@@ -141,7 +141,7 @@ async function seedDatabase() {
 
     console.log('Creando películas...');
     const created = await Movie.insertMany(movieData);
-    console.log(`✅ ${created.length} películas creadas`);
+    console.log(` ${created.length} películas creadas`);
 
     console.log('Verificando primera película...');
     const firstMovie = await Movie.findOne({ title: 'AMERICAN PSYCHO' });
@@ -153,10 +153,10 @@ async function seedDatabase() {
     });
 
     await mongoose.connection.close();
-    console.log('✅ ¡Completado!');
+    console.log(' ¡Completado!');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(' Error:', error.message);
     process.exit(1);
   }
 }
